@@ -7,21 +7,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
+	"riskanly/conf"
 )
 
 // 待巡检 已检查
 
-const (
-	indexnamekey = "index_name"
-	tablekey     = "source_table"
-	wantkey      = "want"
-	resultkey    = "result"
-	filedkey     = "field"
-	Dsnwtmp      = "user=postgres password=example host=192.168.200.58 port=5444 dbname=postgres sslmode=disable"
-	//Dsnrtmp                = "user=postgres password=example host=192.168.200.58 port=5432 dbname=postgres sslmode=disable"
-	maxIdleConnections = 10
-	maxOpenConnections = 100
-)
+
 
 //QA 展示的 数据测试的结果  应当包括检测的表 字段 检测的规则名称 检测预期值 检测的结果
 //task 任务id 任务名 处理逻辑 待质检列表
@@ -50,6 +41,7 @@ type Task struct {
 	QAS    []*QA    `gorm:"_"`
 	DSN    string   `gorm:"_"`
 	Engine *gorm.DB `gorm:"_"`
+	IfCreateTable bool `gorm:"_"`
 }
 
 // 整个生命周期按照顺序执行。不需要考虑性能问题
@@ -81,24 +73,25 @@ func (t *Task) Start() error {
 		return err
 
 	}
-	err = db.AutoMigrate(&QA{})
-	if err != nil {
-		fmt.Println("Failed to migrate table structures:", err)
-		return err
-	}
 	sqlDb, err := db.DB()
 	if err != nil {
 		return err
 	}
-	sqlDb.SetMaxIdleConns(maxIdleConnections)
-	sqlDb.SetMaxOpenConns(maxOpenConnections)
+	sqlDb.SetMaxIdleConns(conf.MaxIdleConnections)
+	sqlDb.SetMaxOpenConns(conf.MaxOpenConnections)
 	t.Engine = db
-
+    if t.IfCreateTable==true{
+		err = t.Engine.AutoMigrate(&QA{})
+		if err != nil {
+			fmt.Println("Failed to migrate table structures:", err)
+			return err
+		}
+	}
 	return nil
 }
 
 func (t *Task) Run() ([]*QA, error) {
-	results, err := executeSQLQuery(t.Engine, t.Sql)
+	results, err := ExecuteSQLQuery(t.Engine, t.Sql)
 	fmt.Println(results)
 	if err != nil {
 		log.Fatal(err)
@@ -107,11 +100,11 @@ func (t *Task) Run() ([]*QA, error) {
 		for _, row := range results {
 			qa := &QA{
 				Qaname:      t.Name,
-				IndexName:   row[indexnamekey].(string),
-				SourceTable: row[tablekey].(string),
-				Field:       row[filedkey].(string),
-				Want:        row[wantkey].(string),
-				Qaresult:    fmt.Sprintf("%1.f%%", row[resultkey].(float64)),
+				IndexName:   row[conf.Indexnamekey].(string),
+				SourceTable: row[conf.Tablekey].(string),
+				Field:       row[conf.Filedkey].(string),
+				Want:        row[conf.Wantkey].(string),
+				Qaresult:    fmt.Sprintf("%1.f%%", row[conf.Resultkey].(float64)),
 			}
 			t.QAS = append(t.QAS, qa)
 			t.Engine.Create(qa)
@@ -133,7 +126,7 @@ func (t *Task) Stop() error {
 	}
 	return nil
 }
-func executeSQLQuery(db *gorm.DB, sql string) ([]map[string]interface{}, error) {
+func ExecuteSQLQuery(db *gorm.DB, sql string) ([]map[string]interface{}, error) {
 	var results []map[string]interface{}
 
 	// 使用Raw方法执行SQL查询
@@ -157,13 +150,14 @@ func executeSQLQuery(db *gorm.DB, sql string) ([]map[string]interface{}, error) 
 //
 //		}
 //	}
-var Tasktmp = Task{
-	Name: "企业表法人字段非空值率小于90%",
-	Sql:  `SELECT '90%' as want,'legal_rep' as field,'public.dm_lget_company_info' as source_table,'非空值率' as index_name,(COUNT(*) FILTER (WHERE legal_rep IS NOT NULL) * 100.0 / COUNT(*)) AS result FROM public.dm_lget_company_info;`,
-	DSN:  Dsnwtmp,
-}
+
 func (t *Task) Jsontask() string{
 	qas,_:=json.Marshal(t.QAS)
 	message :=t.Name+string(qas)
 	return message
+}
+var Tasktmp = Task{
+	Name: "企业表法人字段非空值率小于90%",
+	Sql:  `SELECT '90%' as want,'legal_rep' as field,'public.dm_lget_company_info' as source_table,'非空值率' as index_name,(COUNT(*) FILTER (WHERE legal_rep IS NOT NULL) * 100.0 / COUNT(*)) AS result FROM public.dm_lget_company_info;`,
+	DSN:  conf.Dsnwtmp,
 }

@@ -1,4 +1,4 @@
-package report
+package pkg
 
 import (
 	"bytes"
@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"riskanly/conf"
 )
 
-const (
-	sceret     = "数据巡检："
-    webhookURL = "保留在本地"
-)
+
 
 type DingTalkResponse struct {
 	ErrCode int    `json:"errcode"`
@@ -70,9 +68,9 @@ func sendDingTalkMessage(webhookURL string, message string) error {
 	return nil
 }
 
-func Run(message string) {
-	message = sceret + message
-	err := sendDingTalkMessage(webhookURL, message)
+func RquestDingTalkBot(message string) {
+	message = conf.Sceret + message
+	err := sendDingTalkMessage(conf.WebhookURL, message)
 	if err != nil {
 		log.Fatal(err)
 	}
