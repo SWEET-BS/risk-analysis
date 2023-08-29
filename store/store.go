@@ -71,7 +71,6 @@ func (t *Task) Start() error {
 	db, err = gorm.Open(postgres.Open(t.DSN), &gorm.Config{})
 	if err != nil {
 		return err
-
 	}
 	sqlDb, err := db.DB()
 	if err != nil {
