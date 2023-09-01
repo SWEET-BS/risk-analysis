@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,8 +12,6 @@ import (
 )
 
 // 待巡检 已检查
-
-
 
 //QA 展示的 数据测试的结果  应当包括检测的表 字段 检测的规则名称 检测预期值 检测的结果
 //task 任务id 任务名 处理逻辑 待质检列表
@@ -36,12 +35,12 @@ type QA struct {
 // Task 1 Task ->qa1 , qa2 , qa3
 type Task struct {
 	gorm.Model
-	Name   string
-	Sql    string
-	QAS    []*QA    `gorm:"_"`
-	DSN    string   `gorm:"_"`
-	Engine *gorm.DB `gorm:"_"`
-	IfCreateTable bool `gorm:"_"`
+	Name          string
+	Sql           string
+	QAS           []*QA    `gorm:"_"`
+	DSN           string   `gorm:"_"`
+	Engine        *gorm.DB `gorm:"_"`
+	IfCreateTable bool     `gorm:"_"`
 }
 
 // 整个生命周期按照顺序执行。不需要考虑性能问题
@@ -79,7 +78,7 @@ func (t *Task) Start() error {
 	sqlDb.SetMaxIdleConns(conf.MaxIdleConnections)
 	sqlDb.SetMaxOpenConns(conf.MaxOpenConnections)
 	t.Engine = db
-    if t.IfCreateTable==true{
+	if t.IfCreateTable == true {
 		err = t.Engine.AutoMigrate(&QA{})
 		if err != nil {
 			fmt.Println("Failed to migrate table structures:", err)
@@ -150,13 +149,42 @@ func ExecuteSQLQuery(db *gorm.DB, sql string) ([]map[string]interface{}, error) 
 //		}
 //	}
 
-func (t *Task) Jsontask() string{
-	qas,_:=json.Marshal(t.QAS)
-	message :=t.Name+string(qas)
+func (t *Task) Jsontask() string {
+	qas, _ := json.Marshal(t.QAS)
+	message := t.Name + string(qas)
 	return message
 }
+
 var Tasktmp = Task{
 	Name: "企业表法人字段非空值率小于90%",
 	Sql:  `SELECT '90%' as want,'legal_rep' as field,'public.dm_lget_company_info' as source_table,'非空值率' as index_name,(COUNT(*) FILTER (WHERE legal_rep IS NOT NULL) * 100.0 / COUNT(*)) AS result FROM public.dm_lget_company_info;`,
 	DSN:  conf.Dsnwtmp,
+}
+// 查询某个条件下是否存在值
+var Taskindex = Task{
+	Name: "指标规则id存在数据",
+	Sql: `SELECT t2.rule_id , COUNT(t1.*) AS count
+FROM "index".inx_general t1
+right JOIN "index".inx_regular_program t2 ON t1.rule_id  = t2.rule_id 
+GROUP BY t2.rule_id  `,
+	DSN: conf.DsnNewBarinSaas,
+}
+func (t *Task) CheckCount() string{
+	var buf bytes.Buffer
+	str,_ :=ExecuteSQLQuery(t.Engine,t.Sql)
+	for _, m := range str {
+		if m["count"].(int64)==int64(0){
+			str1,_:=convertMapToString(m)
+			buf.WriteString(str1+" ")
+		}
+	}
+	return buf.String()
+}
+
+func convertMapToString(data map[string]interface{}) (string, error) {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonData), nil
 }
