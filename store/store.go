@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"riskanly/conf"
+	"time"
 )
 
 // 待巡检 已检查
@@ -67,7 +68,9 @@ func (t *Task) Start() error {
 		}
 	}()
 	var db *gorm.DB
-	db, err = gorm.Open(postgres.Open(t.DSN), &gorm.Config{})
+	db, err = gorm.Open(postgres.Open(t.DSN), &gorm.Config{
+		PrepareStmt: true,
+	})
 	if err != nil {
 		return err
 	}
@@ -77,6 +80,8 @@ func (t *Task) Start() error {
 	}
 	sqlDb.SetMaxIdleConns(conf.MaxIdleConnections)
 	sqlDb.SetMaxOpenConns(conf.MaxOpenConnections)
+	sqlDb.SetConnMaxLifetime(time.Minute * 5)
+
 	t.Engine = db
 	if t.IfCreateTable == true {
 		err = t.Engine.AutoMigrate(&QA{})

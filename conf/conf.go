@@ -35,8 +35,8 @@ const (
 // pkg.bot package
 const (
 	Sceret     = "数据巡检："
-	WebhookURL = "https://oapi.dingtalk.com/robot/send?access_token=2282b1d0eeded882853e3b82f358f35573a2f411f04e9fefb8a7818bde574db2"
+	//WebhookURL = "https://oapi.dingtalk.com/robot/send?access_token=2282b1d0eeded882853e3b82f358f35573a2f411f04e9fefb8a7818bde574db2"
 	//WebhookURL="https://oapi.dingtalk.com/robot/send?access_token=e6bd5b1004a9deae492ce606213d8cca400ab49cfbab4689fd21fb934bf2f94d"
 	//WebhookURL ="不做上传"
-	//WebhookURL="https://oapi.dingtalk.com/robot/send?access_token=df087aa34cd92b490a3a0b895edfa35388faf04cdaf6b1ed1deea69b3d65d5cd"
+	WebhookURL="https://oapi.dingtalk.com/robot/send?access_token=df087aa34cd92b490a3a0b895edfa35388faf04cdaf6b1ed1deea69b3d65d5cd"
 )
