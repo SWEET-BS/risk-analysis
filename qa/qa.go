@@ -1,4 +1,4 @@
-package store
+package qa
 
 import (
 	"bytes"
@@ -12,17 +12,26 @@ import (
 	"time"
 )
 
-// 待巡检 已检查
+type QA1 struct {
+}
 
-//QA 展示的 数据测试的结果  应当包括检测的表 字段 检测的规则名称 检测预期值 检测的结果
-//task 任务id 任务名 处理逻辑 待质检列表
-// case
-// 企业表法人字段空置率大于90%
-// QA 空置率，企业表， 法人， Result， 90%
-// Task “select × from ” QAS
+func (q *QA1) CheckNullRate() {
 
-// QA 定义指标对象
-// 一个任务对应多个质量（QA）结果
+}
+func (q *QA1) CheckDataCount() {
+
+}
+
+type Result struct {
+}
+
+func (r *Result) WriteDb() {
+
+}
+func (r *Result) Request() {
+
+}
+
 type QA struct {
 	gorm.Model
 	Qaname      string // 描述来自于任务
@@ -165,22 +174,45 @@ var Tasktmp = Task{
 	Sql:  `SELECT '90%' as want,'legal_rep' as field,'public.dm_lget_company_info' as source_table,'非空值率' as index_name,(COUNT(*) FILTER (WHERE legal_rep IS NOT NULL) * 100.0 / COUNT(*)) AS result FROM public.dm_lget_company_info;`,
 	DSN:  conf.Dsnwtmp,
 }
+
 // 查询某个条件下是否存在值
 var Taskindex = Task{
-	Name: "指标规则id存在数据",
+	Name: "指标规则rule_id存在数据",
 	Sql: `SELECT t2.rule_id , COUNT(t1.*) AS count
 FROM "index".inx_general t1
 right JOIN "index".inx_regular_program t2 ON t1.rule_id  = t2.rule_id 
 GROUP BY t2.rule_id  `,
 	DSN: conf.DsnNewBarinSaas,
 }
-func (t *Task) CheckCount() string{
+var TaskDate =Task{
+	Name:"ads_migrate_probability_index及时性检查",
+	Sql: `select (max(update_time)::date)::text as sys_date from ads.ads_investment_signal`,
+	DSN: conf.DsnNewBarinSaas,
+}
+func (t *Task) CheckLatestDate() string{
 	var buf bytes.Buffer
-	str,_ :=ExecuteSQLQuery(t.Engine,t.Sql)
+	str, err := ExecuteSQLQuery(t.Engine, t.Sql)
+	if err != nil {
+		buf.WriteString("数据连接错误")
+	}
 	for _, m := range str {
-		if m["count"].(int64)==int64(0){
-			str1,_:=convertMapToString(m)
-			buf.WriteString(str1+" ")
+		if m["sys_date"].(string)!=time.Now().Format(conf.Y_M_D){
+			str1, _ := convertMapToString(m)
+			buf.WriteString(str1 + " ")
+		}
+	}
+	return buf.String()
+}
+func (t *Task) CheckCount() string {
+	var buf bytes.Buffer
+	str, err := ExecuteSQLQuery(t.Engine, t.Sql)
+	if err != nil {
+		buf.WriteString("数据连接错误")
+	}
+	for _, m := range str {
+		if m["count"].(int64) == int64(0) {
+			str1, _ := convertMapToString(m)
+			buf.WriteString(str1 + " ")
 		}
 	}
 	return buf.String()

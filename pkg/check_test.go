@@ -3,12 +3,12 @@ package pkg
 import (
 	"fmt"
 	"riskanly/conf"
-	"riskanly/store"
+	"riskanly/qa"
 	"testing"
 )
 
 func TestA(t *testing.T) {
-	tmp :=store.Task{
+	tmp := qa.Task{
 		DSN: conf.DsnNewBarinSaas,
 	}
 	table_info :=TableInfo{

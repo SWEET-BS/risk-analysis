@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"riskanly/conf"
-	"riskanly/store"
+	"riskanly/qa"
 	"strings"
 )
 
@@ -34,7 +34,7 @@ func (t *TableInfo) QueryTableColumnsSql() string {
 }
 func (t *TableInfo) QueryAllTable(db *gorm.DB) ([]*TableInfo, error) {
 	alltbales := make([]*TableInfo, 0)
-	alltable, err := store.ExecuteSQLQuery(db, t.QueryAllTableSql())
+	alltable, err := qa.ExecuteSQLQuery(db, t.QueryAllTableSql())
 	for _, v := range alltable {
 		tablename := &TableInfo{
 			Name: v[conf.Keytable].(string),
@@ -49,7 +49,7 @@ func (t *TableInfo) QueryAllTable(db *gorm.DB) ([]*TableInfo, error) {
 func (t *TableInfo) QueryAllColumns(db *gorm.DB) {
 	//fmt.Println(t.QueryTableColumnsSql())
 	//待检测字段已经存在t中
-	columns, err := store.ExecuteSQLQuery(db, t.QueryTableColumnsSql())
+	columns, err := qa.ExecuteSQLQuery(db, t.QueryTableColumnsSql())
 	if err != nil {
 		return
 	}
