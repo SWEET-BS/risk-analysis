@@ -18,7 +18,6 @@ func main() {
 			select {
 			case <-ticker.C:
 				makeRequest()
-				checkDate()
 			case <-stop:
 				// 收到停止信号时停止定时任务
 				ticker.Stop()
@@ -39,6 +38,7 @@ func makeRequest() {
 	defer qa.Taskindex.Stop()
 	if msg != "" {
 		msg = "警告！指标表rule_id存在数据量为空" + msg
+		checkDate()
 		pkg.RquestDingTalkBot(msg)
 	}
 }
