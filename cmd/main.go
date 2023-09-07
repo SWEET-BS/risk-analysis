@@ -58,7 +58,7 @@ func makeRequest() string {
 func checkDate() string {
 	qa.TaskDate.Start()
 	msg, err := qa.TaskDate.CheckLatestDate()
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), qa.TaskDate.Name, " 及时性检查结果 ", msg)
+	fmt.Println(time.Now().Format(time.DateTime), qa.TaskDate.Name, " 及时性检查结果 ", msg)
 	defer qa.Taskindex.Stop()
 	if err != nil && err != fmt.Errorf(conf.ErromsgConnectionDb) {
 		msg = qa.TaskDate.Name + " " + msg
