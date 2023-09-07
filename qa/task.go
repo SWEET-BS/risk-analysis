@@ -21,25 +21,26 @@ type Task1 struct {
 	Notifications   []*Notification
 }
 type TaskSchedule struct {
-	Frequency   string
-	Interval    int
-	StartDate   time.Time
-	EndDate     time.Time
+	Frequency string
+	Interval  int
+	StartDate time.Time
+	EndDate   time.Time
 }
 
 type TaskLog struct {
-	Timestamp   time.Time
-	Message     string
+	Timestamp time.Time
+	Message   string
 }
 
 type Notification struct {
-	Type        string
-	Recipients  []string
+	Type       string
+	Recipients []string
 }
-func (t *Task1) Start()  {
+
+func (t *Task1) Start() {
 
 }
-func (t *Task1) Run(){
+func (t *Task1) Run() {
 
 }
 func (t *Task1) Stop() {

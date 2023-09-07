@@ -11,8 +11,8 @@ func TestA(t *testing.T) {
 	tmp := qa.Task{
 		DSN: conf.DsnNewBarinSaas,
 	}
-	table_info :=TableInfo{
-		Schema: "ads",
+	table_info := TableInfo{
+		Schema:  "ads",
 		IfCheck: true,
 	}
 	tmp.Start()

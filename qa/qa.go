@@ -76,27 +76,32 @@ func (t *Task) Start() error {
 			err = errors.New("panic occurred during database initialization")
 		}
 	}()
-	var db *gorm.DB
-	db, err = gorm.Open(postgres.Open(t.DSN), &gorm.Config{
-		PrepareStmt: true,
-	})
-	if err != nil {
-		return err
-	}
-	sqlDb, err := db.DB()
-	if err != nil {
-		return err
-	}
-	sqlDb.SetMaxIdleConns(conf.MaxIdleConnections)
-	sqlDb.SetMaxOpenConns(conf.MaxOpenConnections)
-	sqlDb.SetConnMaxLifetime(time.Minute * 5)
-
-	t.Engine = db
-	if t.IfCreateTable == true {
-		err = t.Engine.AutoMigrate(&QA{})
+	for i := 0; i < conf.MaxConnectionRetries; i++ {
+		var db *gorm.DB
+		db, err = gorm.Open(postgres.Open(t.DSN), &gorm.Config{
+			PrepareStmt: true,
+		})
 		if err != nil {
-			fmt.Println("Failed to migrate table structures:", err)
+			fmt.Printf("无法连接到数据库。%d 秒后进行重试...\n", conf.ConnectionRetryInterval)
+			time.Sleep(time.Second * time.Duration(conf.ConnectionRetryInterval))
+			continue
+		}
+
+		sqlDb, err := db.DB()
+		if err != nil {
 			return err
+		}
+		sqlDb.SetMaxIdleConns(conf.MaxIdleConnections)
+		sqlDb.SetMaxOpenConns(conf.MaxOpenConnections)
+		sqlDb.SetConnMaxLifetime(time.Minute * 5)
+
+		t.Engine = db
+		if t.IfCreateTable == true {
+			err = t.Engine.AutoMigrate(&QA{})
+			if err != nil {
+				fmt.Println("Failed to migrate table structures:", err)
+				return err
+			}
 		}
 	}
 	return nil
@@ -177,37 +182,41 @@ var Tasktmp = Task{
 
 // 查询某个条件下是否存在值
 var Taskindex = Task{
-	Name: "指标规则rule_id存在数据",
+	Name: "指标规则 rule_id 空数据检查 ",
 	Sql: `SELECT t2.rule_id , COUNT(t1.*) AS count
 FROM "index".inx_general t1
 right JOIN "index".inx_regular_program t2 ON t1.rule_id  = t2.rule_id 
 GROUP BY t2.rule_id  `,
 	DSN: conf.DsnNewBarinSaas,
 }
-var TaskDate =Task{
-	Name:"ads_migrate_probability_index及时性检查",
-	Sql: `select (max(update_time)::date)::text as sys_date from ads.ads_investment_signal`,
-	DSN: conf.DsnNewBarinSaas,
+var TaskDate = Task{
+	Name: " ads_migrate_probability_index 及时性检查 ",
+	Sql:  `select (max(update_time)::date)::text as sys_date from ads.ads_investment_signal`,
+	DSN:  conf.DsnNewBarinSaas,
 }
-func (t *Task) CheckLatestDate() string{
+
+func (t *Task) CheckLatestDate() (string, error) {
 	var buf bytes.Buffer
 	str, err := ExecuteSQLQuery(t.Engine, t.Sql)
 	if err != nil {
-		buf.WriteString("数据连接错误")
+		return "", fmt.Errorf(conf.ErromsgConnectionDb)
 	}
 	for _, m := range str {
-		if m["sys_date"].(string)!=time.Now().Format(conf.Y_M_D){
+		if m["sys_date"].(string) != time.Now().Format(conf.Y_M_D) {
 			str1, _ := convertMapToString(m)
 			buf.WriteString(str1 + " ")
 		}
 	}
-	return buf.String()
+	if buf.String() == "" {
+		return "及时性达标", nil
+	}
+	return buf.String() + " 及时性不达标 ", fmt.Errorf("及时性不达标")
 }
-func (t *Task) CheckCount() string {
+func (t *Task) CheckCount() (string, error) {
 	var buf bytes.Buffer
 	str, err := ExecuteSQLQuery(t.Engine, t.Sql)
 	if err != nil {
-		buf.WriteString("数据连接错误")
+		return "", fmt.Errorf(conf.ErromsgConnectionDb)
 	}
 	for _, m := range str {
 		if m["count"].(int64) == int64(0) {
@@ -215,7 +224,10 @@ func (t *Task) CheckCount() string {
 			buf.WriteString(str1 + " ")
 		}
 	}
-	return buf.String()
+	if buf.String() == "" {
+		return conf.CheckCount, nil
+	}
+	return buf.String() + " 存在空值 ", fmt.Errorf("指标结果存在空值")
 }
 
 func convertMapToString(data map[string]interface{}) (string, error) {

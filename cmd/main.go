@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"riskanly/conf"
 	"riskanly/pkg"
 	"riskanly/qa"
+	"strings"
 	"time"
 )
 
@@ -18,6 +20,12 @@ func main() {
 			select {
 			case <-ticker.C:
 				makeRequest()
+				if time.Now().Format(time.DateTime) == time.Now().Format(conf.Y_M_D)+conf.CronTime {
+					msg := makeRequest()
+					if strings.Contains(msg, conf.CheckCount) {
+						pkg.RquestDingTalkBot(msg)
+					}
+				}
 			case <-stop:
 				// 收到停止信号时停止定时任务
 				ticker.Stop()
@@ -31,24 +39,34 @@ func main() {
 	<-make(chan struct{})
 }
 
-func makeRequest() {
+func makeRequest() string {
 	qa.Taskindex.Start()
-	msg := qa.Taskindex.CheckCount()
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05")," 指标巡检结果",msg)
+	msg, err := qa.Taskindex.CheckCount()
+	fmt.Println(time.Now().Format(time.DateTime), " 指标巡检结果", msg)
 	defer qa.Taskindex.Stop()
-	if msg != "" {
-		msg = "警告！指标表rule_id存在数据量为空" + msg
-		checkDate()
+	if err != nil && err != fmt.Errorf(conf.ErromsgConnectionDb) {
+		datemsg := checkDate()
+		msg = "警告！" + qa.Taskindex.Name + msg + " " + datemsg
 		pkg.RquestDingTalkBot(msg)
 	}
+	if err == nil {
+		return msg
+	} else {
+		return ""
+	}
 }
-func checkDate(){
+func checkDate() string {
 	qa.TaskDate.Start()
-	msg :=qa.TaskDate.CheckLatestDate()
-	fmt.Println(time.Now().Format("2006-01-02 15:04:05"),qa.TaskDate.Name," 及时性检查结果",msg)
+	msg, err := qa.TaskDate.CheckLatestDate()
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), qa.TaskDate.Name, " 及时性检查结果 ", msg)
 	defer qa.Taskindex.Stop()
-	if msg != "" {
-		msg = "警告！"+qa.TaskDate.Name + "不通过" + msg
-		pkg.RquestDingTalkBot(msg)
+	if err != nil && err != fmt.Errorf(conf.ErromsgConnectionDb) {
+		msg = qa.TaskDate.Name + " " + msg
+		return msg
+	}
+	if err == nil {
+		return msg
+	} else {
+		return ""
 	}
 }

@@ -54,9 +54,9 @@ func (t *TableInfo) QueryAllColumns(db *gorm.DB) {
 		return
 	}
 	//fmt.Println(columns)
-	for _,v:=range columns{
-		if _,ok:=t.CheckFields[v[conf.KeyColumn].(string)];ok{
-			t.CheckFields[v[conf.KeyColumn].(string)]="存在"
+	for _, v := range columns {
+		if _, ok := t.CheckFields[v[conf.KeyColumn].(string)]; ok {
+			t.CheckFields[v[conf.KeyColumn].(string)] = "存在"
 		}
 	}
 }
