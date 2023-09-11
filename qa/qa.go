@@ -53,6 +53,10 @@ type Task struct {
 	IfCreateTable bool     `gorm:"_"`
 }
 
+func (t *Task) SetDSN(dsn string) {
+	t.DSN = dsn
+}
+
 // 整个生命周期按照顺序执行。不需要考虑性能问题
 
 // core
@@ -86,15 +90,19 @@ func (t *Task) Start() error {
 			time.Sleep(time.Second * time.Duration(conf.ConnectionRetryInterval))
 			continue
 		}
-
 		sqlDb, err := db.DB()
 		if err != nil {
 			return err
 		}
+        err =sqlDb.Ping()
+		if err != nil {
+			fmt.Printf("无法连接到数据库。%d 秒后进行重试... 第%d次重试 \n", conf.ConnectionRetryInterval,i+1)
+			time.Sleep(time.Second * time.Duration(conf.ConnectionRetryInterval))
+			continue
+		}
 		sqlDb.SetMaxIdleConns(conf.MaxIdleConnections)
 		sqlDb.SetMaxOpenConns(conf.MaxOpenConnections)
 		sqlDb.SetConnMaxLifetime(time.Minute * 5)
-
 		t.Engine = db
 		if t.IfCreateTable == true {
 			err = t.Engine.AutoMigrate(&QA{})
@@ -103,6 +111,8 @@ func (t *Task) Start() error {
 				return err
 			}
 		}
+		fmt.Println("数据库连接成功")
+		break
 	}
 	return nil
 }
@@ -210,7 +220,7 @@ func (t *Task) CheckLatestDate() (string, error) {
 	if buf.String() == "" {
 		return "及时性达标", nil
 	}
-	return buf.String() + " 及时性不达标 ", fmt.Errorf("及时性不达标")
+	return  " 及时性不达标,msg: "+buf.String(), fmt.Errorf("及时性不达标")
 }
 func (t *Task) CheckCount() (string, error) {
 	var buf bytes.Buffer
@@ -227,7 +237,7 @@ func (t *Task) CheckCount() (string, error) {
 	if buf.String() == "" {
 		return conf.CheckCount, nil
 	}
-	return buf.String() + " 存在空值 ", fmt.Errorf("指标结果存在空值")
+	return   " 空值检查不达标 "+buf.String(), fmt.Errorf("指标结果存在空值")
 }
 
 func convertMapToString(data map[string]interface{}) (string, error) {

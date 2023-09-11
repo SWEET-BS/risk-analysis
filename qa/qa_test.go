@@ -1,6 +1,9 @@
 package qa
 
-import "testing"
+import (
+	"riskanly/conf"
+	"testing"
+)
 
 func TestA(t *testing.T) {
 	Taskindex.Start()
@@ -9,4 +12,8 @@ func TestA(t *testing.T) {
 func TestB(t *testing.T) {
 	TaskDate.Start()
 	TaskDate.CheckLatestDate()
+}
+func TestC(t *testing.T) {
+	TaskDate.SetDSN(conf.DsnLocal)
+	TaskDate.Start()
 }
