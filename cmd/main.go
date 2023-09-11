@@ -38,6 +38,7 @@ import (
 //		<-make(chan struct{})
 //	}
 func main() {
+	qa.Taskindex.SetDSN(conf.DsnLocal)
 	makeRequest()
 }
 func makeRequest() error {
@@ -47,7 +48,7 @@ func makeRequest() error {
 	defer qa.Taskindex.Stop()
 	if err != nil && err != fmt.Errorf(conf.ErromsgConnectionDb) {
 		datemsg := checkDate()
-		msg = "警告！" + qa.Taskindex.Name + msg + " " + datemsg
+		msg = "警告！" + qa.Taskindex.Name + "\n" + msg + "\n" + datemsg
 		pkg.RquestDingTalkBot(msg)
 		return err
 	}
@@ -57,12 +58,13 @@ func makeRequest() error {
 func checkDate() string {
 	qa.TaskDate.Start()
 	msg, err := qa.TaskDate.CheckLatestDate()
+	fmt.Println(msg)
 	fmt.Println(time.Now().Format(time.DateTime), qa.TaskDate.Name, " 及时性检查结果 ", msg)
 	defer qa.Taskindex.Stop()
 	if err != nil && err != fmt.Errorf(conf.ErromsgConnectionDb) {
-		msg = qa.TaskDate.Name + " " + msg
+		msg = qa.TaskDate.Name + "\n" + msg
 		return msg
 	} else {
-		return qa.TaskDate.Name + msg
+		return qa.TaskDate.Name + "\n" + msg
 	}
 }

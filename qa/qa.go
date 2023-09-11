@@ -94,9 +94,9 @@ func (t *Task) Start() error {
 		if err != nil {
 			return err
 		}
-        err =sqlDb.Ping()
+		err = sqlDb.Ping()
 		if err != nil {
-			fmt.Printf("无法连接到数据库。%d 秒后进行重试... 第%d次重试 \n", conf.ConnectionRetryInterval,i+1)
+			fmt.Printf("无法连接到数据库。%d 秒后进行重试... 第%d次重试 \n", conf.ConnectionRetryInterval, i+1)
 			time.Sleep(time.Second * time.Duration(conf.ConnectionRetryInterval))
 			continue
 		}
@@ -201,7 +201,7 @@ GROUP BY t2.rule_id  `,
 }
 var TaskDate = Task{
 	Name: " ads_migrate_probability_index 及时性检查 ",
-	Sql:  `select (max(update_time)::date)::text as sys_date from ads.ads_investment_signal`,
+	Sql:  `select (max(update_time)::date)::text as sys_date from ads.ads_migrate_probability_index`,
 	DSN:  conf.DsnNewBarinSaas,
 }
 
@@ -209,7 +209,7 @@ func (t *Task) CheckLatestDate() (string, error) {
 	var buf bytes.Buffer
 	str, err := ExecuteSQLQuery(t.Engine, t.Sql)
 	if err != nil {
-		return "", fmt.Errorf(conf.ErromsgConnectionDb)
+		return fmt.Sprintf("及时性不达标,%v", err), fmt.Errorf(conf.ErromsgConnectionDb)
 	}
 	for _, m := range str {
 		if m["sys_date"].(string) != time.Now().Format(conf.Y_M_D) {
@@ -220,13 +220,13 @@ func (t *Task) CheckLatestDate() (string, error) {
 	if buf.String() == "" {
 		return "及时性达标", nil
 	}
-	return  " 及时性不达标,msg: "+buf.String(), fmt.Errorf("及时性不达标")
+	return " 及时性不达标\nerrormsg: " + buf.String(), fmt.Errorf("及时性不达标")
 }
 func (t *Task) CheckCount() (string, error) {
 	var buf bytes.Buffer
 	str, err := ExecuteSQLQuery(t.Engine, t.Sql)
 	if err != nil {
-		return "", fmt.Errorf(conf.ErromsgConnectionDb)
+		return fmt.Sprintf("空值检查不达标,%v", err), fmt.Errorf(conf.ErromsgConnectionDb)
 	}
 	for _, m := range str {
 		if m["count"].(int64) == int64(0) {
@@ -237,7 +237,7 @@ func (t *Task) CheckCount() (string, error) {
 	if buf.String() == "" {
 		return conf.CheckCount, nil
 	}
-	return   " 空值检查不达标 "+buf.String(), fmt.Errorf("指标结果存在空值")
+	return " 空值检查不达标,errormsg: " + buf.String(), fmt.Errorf("指标结果存在空值")
 }
 
 func convertMapToString(data map[string]interface{}) (string, error) {
