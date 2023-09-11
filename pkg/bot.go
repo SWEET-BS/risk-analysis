@@ -68,7 +68,7 @@ func sendDingTalkMessage(webhookURL string, message string) error {
 
 func RquestDingTalkBot(message string) {
 	message = conf.Sceret + message
-	err := sendDingTalkMessage(conf.WebhookURLTest, message)
+	err := sendDingTalkMessage(conf.WebhookURL1, message)
 	if err != nil {
 		log.Fatal(err)
 	}

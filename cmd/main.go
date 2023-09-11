@@ -38,7 +38,6 @@ import (
 //		<-make(chan struct{})
 //	}
 func main() {
-	qa.Taskindex.SetDSN(conf.DsnLocal)
 	makeRequest()
 }
 func makeRequest() error {
@@ -60,7 +59,7 @@ func checkDate() string {
 	msg, err := qa.TaskDate.CheckLatestDate()
 	fmt.Println(msg)
 	fmt.Println(time.Now().Format(time.DateTime), qa.TaskDate.Name, " 及时性检查结果 ", msg)
-	defer qa.Taskindex.Stop()
+	defer qa.TaskDate.Stop()
 	if err != nil && err != fmt.Errorf(conf.ErromsgConnectionDb) {
 		msg = qa.TaskDate.Name + "\n" + msg
 		return msg
